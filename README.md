@@ -18,8 +18,9 @@ pip install -r requirements.txt
 **omni:** create a key at https://aistudio.google.com/apikey, then `export GEMINI_API_KEY=...`. In the "Balaam" cloud environment, you can save the key as a network secret instead (host `generativelanguage.googleapis.com`, header `x-goog-api-key`), and then you don't need to set the variable.
 
 **veo:** you need a Google Cloud project with billing and the Vertex AI / Agent Platform API enabled. Then use either of these:
-- **API key (express mode):** in Cloud Console, go to APIs & Services → Credentials. Edit the key's API restrictions so it also allows the Vertex AI API, then set `VEO_API_KEY`. If that variable isn't set, the tool uses `GEMINI_API_KEY`.
-- **Cloud credentials:** run `gcloud auth application-default login`, or point `GOOGLE_APPLICATION_CREDENTIALS` at a service-account key file. Then run `export GOOGLE_CLOUD_PROJECT=your-project-id`. `GOOGLE_CLOUD_LOCATION` defaults to `us-central1`.
+Set `export GOOGLE_CLOUD_PROJECT=your-project-id`. `GOOGLE_CLOUD_LOCATION` defaults to `us-central1`. Then use either of these:
+- **API key (default):** in Cloud Console, go to APIs & Services → Credentials. Edit the key's API restrictions so it also allows the Vertex AI / Agent Platform API, then set `VEO_API_KEY`. If that variable isn't set, the tool uses `GEMINI_API_KEY`.
+- **Cloud credentials:** set `VEO_AUTH=adc`, then run `gcloud auth application-default login`, or point `GOOGLE_APPLICATION_CREDENTIALS` at a service-account key file.
 
 ## Usage
 

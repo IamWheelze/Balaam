@@ -136,12 +136,17 @@ def omni_upload(c: genai.Client, clip: str) -> str:
 
 def veo_client() -> genai.Client:
     project = os.environ.get("GOOGLE_CLOUD_PROJECT")
-    if project:
+    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+    if os.environ.get("VEO_AUTH") == "adc":
         # Application-default credentials (gcloud login or service account).
-        location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+        if not project:
+            sys.exit("Set GOOGLE_CLOUD_PROJECT to use VEO_AUTH=adc.")
         return genai.Client(vertexai=True, project=project, location=location)
-    # Express mode: a Google Cloud API key allowed to call the Agent Platform API.
+    # API key allowed to call the Agent Platform API. Video generation needs the
+    # project in the request, so pass it when known.
     key = os.environ.get("VEO_API_KEY") or os.environ.get("GEMINI_API_KEY", "proxy-injected")
+    if project:
+        return genai.Client(vertexai=True, api_key=key, project=project, location=location)
     return genai.Client(vertexai=True, api_key=key)
 
 

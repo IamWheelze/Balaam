@@ -4,9 +4,10 @@
 Two backends:
   omni  Gemini Omni Flash via the Gemini API (default). Needs GEMINI_API_KEY.
   veo   Veo via Gemini Enterprise Agent Platform (formerly Vertex AI). Needs a
-        Google Cloud project with billing, the Agent Platform API enabled, and
-        application-default credentials (gcloud auth application-default login,
-        or GOOGLE_APPLICATION_CREDENTIALS pointing at a service-account key).
+        Google Cloud project with billing and the Agent Platform API enabled,
+        plus either an API key allowed to call that API (VEO_API_KEY, falling
+        back to GEMINI_API_KEY) or GOOGLE_CLOUD_PROJECT with
+        application-default credentials.
 
 Commands:
   models                       list the video models your credentials can use
@@ -135,10 +136,13 @@ def omni_upload(c: genai.Client, clip: str) -> str:
 
 def veo_client() -> genai.Client:
     project = os.environ.get("GOOGLE_CLOUD_PROJECT")
-    if not project:
-        sys.exit("Set GOOGLE_CLOUD_PROJECT (and log in with gcloud) to use the veo backend.")
-    location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
-    return genai.Client(vertexai=True, project=project, location=location)
+    if project:
+        # Application-default credentials (gcloud login or service account).
+        location = os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1")
+        return genai.Client(vertexai=True, project=project, location=location)
+    # Express mode: a Google Cloud API key allowed to call the Agent Platform API.
+    key = os.environ.get("VEO_API_KEY") or os.environ.get("GEMINI_API_KEY", "proxy-injected")
+    return genai.Client(vertexai=True, api_key=key)
 
 
 def veo_image(path: str) -> types.Image:

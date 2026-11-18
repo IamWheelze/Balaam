@@ -33,6 +33,7 @@ from google.genai import types
 OMNI_MODEL = os.environ.get("OMNI_MODEL", "gemini-omni-flash-preview")
 VEO_MODEL = os.environ.get("VEO_MODEL", "veo-3.1-generate-001")
 OUT_DIR = pathlib.Path(os.environ.get("VIDEO_OUT_DIR", "output"))
+OMNI_TIMEOUT = int(os.environ.get("OMNI_TIMEOUT", "1200"))  # seconds
 
 
 # ---------- shared helpers ----------
@@ -86,11 +87,24 @@ def omni_format(a) -> dict:
 def omni_run(a, inputs, previous_id=None) -> tuple[str, pathlib.Path]:
     c = omni_client()
     print(f"Model: {a.model}", file=sys.stderr)
-    kwargs = dict(model=a.model, input=inputs, response_format=omni_format(a))
+    # Background mode: the request returns at once and we poll, instead of
+    # holding one HTTP connection open for minutes (which can silently drop).
+    kwargs = dict(model=a.model, input=inputs, response_format=omni_format(a),
+                  background=True)
     if previous_id:
         kwargs["previous_interaction_id"] = previous_id
     start = time.time()
     r = c.interactions.create(**kwargs)
+    print(f"  interaction {r.id}", file=sys.stderr)
+    while r.status in ("in_progress", "queued"):
+        if time.time() - start > OMNI_TIMEOUT:
+            sys.exit(f"Gave up after {OMNI_TIMEOUT}s; interaction {r.id} still {r.status}.")
+        tick(start)
+        time.sleep(5)
+        r = c.interactions.get(r.id)
+    if r.status != "completed":
+        errors = "; ".join(f"{e.code}: {e.message}" for e in (getattr(r, "errors", None) or []))
+        sys.exit(f"\nGeneration {r.status} (interaction {r.id}). {errors}")
     video = r.output_video
     if video is None:
         sys.exit(f"No video returned (interaction {r.id}).")
